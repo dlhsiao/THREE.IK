@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <title>THREE.IK - body</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+        <style>
+            body {
+                font-family: Monospace;
+                background-color: #000;
+                color: #fff;
+                margin: 0px;
+                overflow: hidden;
+            }
+            #info {
+                color: #fff;
+                position: absolute;
+                top: 10px;
+                width: 100%;
+                text-align: center;
+                z-index: 100;
+                display:block;
+            }
+            #info a {
+                color: #046;
+                font-weight: bold;
+            }
+        </style>
+    </head>
+
+    <body>
+      <script src="node_modules/dat.gui/build/dat.gui.js"></script>
+      <script src="node_modules/three/examples/js/libs/fflate.min.js"></script>
+      <script src="node_modules/three/build/three.js"></script>
+      <script src="node_modules/three/examples/js/controls/TransformControls.js"></script>
+      <script src="node_modules/three/examples/js/controls/OrbitControls.js"></script>
+      <script src="node_modules/three/examples/js/loaders/FBXLoader.js"></script>
+      <script src="scripts/IKApp.js"></script>
+      <script src="scripts/AxisUtils.js"></script>
+  
+      <script src="../build/three-ik.js"></script>
+        <script>
+
+class Body extends IKApp {
+  setupGUI() {
+    this.config.constraintType = "ball";
+    this.config.constraintAngle = 90;
+  }
+  setupIK() {
+    var fbxLoader = new THREE.FBXLoader();
+    fbxLoader.load('assets/Rigged_Stock.fbx', (rigGroup) => {
+      this.scene.add(rigGroup);
+      rigGroup.scale.set(0.01, 0.01, 0.01);
+      rigGroup.updateMatrixWorld();
+
+      var rigMesh = rigGroup.children[0];
+      var rootBone = rigGroup.children[1].children[0];
+
+      setZForward(rootBone);
+      rigMesh.bind(rigMesh.skeleton);
+
+      rigMesh.material = new THREE.MeshPhysicalMaterial({
+        skinning: true,
+        wireframe: true
+      });
+
+      const headTarget = this.createTarget(new THREE.Vector3(0, 1.7, 0));
+
+      const rightHandTarget = this.createTarget(new THREE.Vector3(-1, 1.3, 0));
+
+      const leftHandTarget = this.createTarget(new THREE.Vector3(1, 1.3, 0));
+
+      var boneGroup = rootBone;
+      var ik = new IK.IK();
+      const spineChain = new IK.IKChain();
+      const leftHandChain = new IK.IKChain();
+      const rightHandChain = new IK.IKChain();
+      const leftLegChain = new IK.IKChain();
+      const rightLegChain = new IK.IKChain();
+
+      const hipConstraint = [new IK.IKBallConstraint(180)];
+      const spineConstraint = [new IK.IKBallConstraint(30)];
+      const neckConstraint = [new IK.IKBallConstraint(90)];
+
+      var currentBone = boneGroup;
+      let shoulderRoot;
+      for (let i = 0; i < 7; i++) {
+        if (i === 0) {
+          const hipJoint = new IK.IKJoint(currentBone, { constraints: hipConstraint });
+          spineChain.add(hipJoint);
+          leftLegChain.add(hipJoint);
+          rightLegChain.add(hipJoint);
+        } else if (i === 3) {
+          const shoulderRootJoint = new IK.IKJoint(currentBone, { constraints: spineConstraint });
+          spineChain.add(shoulderRootJoint);
+          leftHandChain.add(shoulderRootJoint);
+          rightHandChain.add(shoulderRootJoint);
+        } else if (i === 6) {
+          spineChain.add(new IK.IKJoint(currentBone, { constraints: neckConstraint }), { target: headTarget });
+        } else {
+          spineChain.add(new IK.IKJoint(currentBone, { constraints: spineConstraint }));
+        }
+        if (i === 3) {
+          shoulderRoot = currentBone;
+          currentBone = currentBone.children[2];
+        } else {
+          currentBone = currentBone.children[0];
+        }
+      }
+
+
+      const shoulderConstraint = [new IK.IKBallConstraint(180)];
+      const elbowConstraint = [new IK.IKBallConstraint(120)];
+      const wristConstraint = [new IK.IKBallConstraint(90)];
+
+      currentBone = shoulderRoot.children[0];
+      leftHandChain.add(new IK.IKJoint(currentBone, { constraints: shoulderConstraint }));
+
+      currentBone = currentBone.children[0];
+      leftHandChain.add(new IK.IKJoint(currentBone, { constraints: shoulderConstraint }));
+
+      currentBone = currentBone.children[0];
+      leftHandChain.add(new IK.IKJoint(currentBone, { constraints: shoulderConstraint }));
+
+      currentBone = currentBone.children[0];
+      leftHandChain.add(new IK.IKJoint(currentBone, { constraints: elbowConstraint }));
+
+      currentBone = currentBone.children[0];
+      leftHandChain.add(new IK.IKJoint(currentBone, { constraints: wristConstraint }), { target: leftHandTarget });
+
+      spineChain.connect(leftHandChain);
+
+      currentBone = shoulderRoot.children[1];
+      rightHandChain.add(new IK.IKJoint(currentBone, { constraints: shoulderConstraint }));
+
+      currentBone = currentBone.children[0];
+      rightHandChain.add(new IK.IKJoint(currentBone, { constraints: shoulderConstraint }));
+      
+      currentBone = currentBone.children[0];
+      rightHandChain.add(new IK.IKJoint(currentBone, { constraints: elbowConstraint }));
+
+      currentBone = currentBone.children[0];
+      rightHandChain.add(new IK.IKJoint(currentBone, { constraints: wristConstraint }), { target: rightHandTarget });
+
+      spineChain.connect(rightHandChain);
+
+      const legConstraint = [new IK.IKBallConstraint(360)];
+      currentBone = rootBone.children[1];
+      for (let i = 0; i < 5; i++ ) {
+        leftLegChain.add(new IK.IKJoint(currentBone, { constraints: legConstraint}));
+        currentBone = currentBone.children[0];
+      }
+      spineChain.connect(leftLegChain);
+
+      currentBone = rootBone.children[2];
+      for (let i = 0; i < 5; i++ ) {
+        rightLegChain.add(new IK.IKJoint(currentBone, { constraints: legConstraint}));
+        currentBone = currentBone.children[0];
+      }
+      spineChain.connect(rightLegChain);
+
+
+      ik.add(spineChain);
+      const helper = new IK.IKHelper(ik);
+      this.scene.add(helper);
+      this.iks.push(ik);
+
+    }, console.log, console.log);
+  }
+};
+
+window.app = new Body();
+    </script>
+  </body>
+</html>
