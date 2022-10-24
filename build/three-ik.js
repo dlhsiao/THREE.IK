@@ -331,8 +331,8 @@ var slicedToArray = function () {
 }();
 
 var Z_AXIS = new three.Vector3(0, 0, 1);
-var DEG2RAD = three.Math.DEG2RAD;
-var RAD2DEG = three.Math.RAD2DEG;
+var DEG2RAD = three.MathUtils.DEG2RAD;
+var RAD2DEG = three.MathUtils.RAD2DEG;
 var IKBallConstraint = function () {
   function IKBallConstraint(angle) {
     classCallCheck(this, IKBallConstraint);

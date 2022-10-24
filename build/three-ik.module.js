@@ -1,4 +1,4 @@
-import { AxesHelper, Color, ConeBufferGeometry, Math as Math$1, Matrix4, Mesh, MeshBasicMaterial, Object3D, Vector3 } from 'three';
+import { AxesHelper, Color, ConeBufferGeometry, MathUtils, Matrix4, Mesh, MeshBasicMaterial, Object3D, Vector3 } from 'three';
 
 var t1 = new Vector3();
 var t2 = new Vector3();
@@ -327,8 +327,8 @@ var slicedToArray = function () {
 }();
 
 var Z_AXIS = new Vector3(0, 0, 1);
-var DEG2RAD = Math$1.DEG2RAD;
-var RAD2DEG = Math$1.RAD2DEG;
+var DEG2RAD = MathUtils.DEG2RAD;
+var RAD2DEG = MathUtils.RAD2DEG;
 var IKBallConstraint = function () {
   function IKBallConstraint(angle) {
     classCallCheck(this, IKBallConstraint);
